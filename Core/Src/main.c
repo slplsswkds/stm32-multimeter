@@ -49,7 +49,8 @@ ADC_HandleTypeDef hadc1;
 I2C_HandleTypeDef hi2c1;
 
 /* USER CODE BEGIN PV */
-
+uint16_t ADC_VAL = 0;
+float voltage = 0.0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,13 +64,6 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint16_t ADC_VAL = 0;
-int value = 0;
-
-long map(const long x, const long in_min, const long in_max, const long out_min, const long out_max)
-{
-    return (x - in_min) * (out_max - out_min + 1) / (in_max - in_min + 1) + out_min;
-}
 
 /* USER CODE END 0 */
 
@@ -112,21 +106,17 @@ int main(void)
     ssd1306_Clear();
     ssd1306_SetColor(White);
     ssd1306_UpdateScreen();
+
+    HAL_ADC_Start_IT(&hadc1);
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1)
     {
-        // HAL_ADC_PollForConversion(&hadc1, 100);
-        HAL_ADC_Start(&hadc1);
-        ADC_VAL = HAL_ADC_GetValue(&hadc1);
-        float voltage = (ADC_VAL * 3.3) / 4095.0;
-
+        voltage = (ADC_VAL * 3.3) / 4095.0;
 
         char str_buffer[20];
-        // sprintf(str_buffer, "ADC = %-4d", ADC_VAL);
-        // sprintf(str_buffer, "ADC = %f", voltage);
         sprintf(str_buffer, "ADC: %d.%02d V", (int)voltage, (int)(voltage * 100) % 100);
 
         ssd1306_SetCursor(0, 0);
@@ -207,7 +197,7 @@ static void MX_ADC1_Init(void)
     */
     hadc1.Instance = ADC1;
     hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-    hadc1.Init.ContinuousConvMode = DISABLE;
+    hadc1.Init.ContinuousConvMode = ENABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
@@ -221,7 +211,7 @@ static void MX_ADC1_Init(void)
     */
     sConfig.Channel = ADC_CHANNEL_0;
     sConfig.Rank = ADC_REGULAR_RANK_1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+    sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
     {
         Error_Handler();
@@ -295,6 +285,11 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+    ADC_VAL = HAL_ADC_GetValue(&hadc1);
+    voltage = (ADC_VAL * 3.3) / 4095.0;
+}
 
 /* USER CODE END 4 */
 
